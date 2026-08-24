@@ -9,7 +9,7 @@ Vagrant.configure("2") do |config|
 
     server.vm.provider "virtualbox" do |vb|
       vb.name = "yowazgaS"
-      vb.memory = 1024
+      vb.memory = 2048
       vb.cpus = 1
     server.vm.provision "shell",
       path: "scripts/server.sh"
@@ -24,7 +24,7 @@ Vagrant.configure("2") do |config|
 
     worker.vm.provider "virtualbox" do |vb|
       vb.name = "yowazgaSW"
-      vb.memory = 1024
+      vb.memory = 2048
       vb.cpus = 1
     worker.vm.provision "shell",
       path: "scripts/worker.sh"
