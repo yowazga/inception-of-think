@@ -1,11 +1,14 @@
+SERVER_IP = "192.168.56.110"
+
 Vagrant.configure("2") do |config|
-  config.vm.box = "ubuntu/jammy64"
+  # Ubuntu 26.04 LTS: latest stable Ubuntu release
+  config.vm.box = "bento/ubuntu-26.04"
 
   config.vm.define "yowazgaS" do |server|
     server.vm.hostname = "yowazgaS"
 
     server.vm.network "private_network",
-      ip: "192.168.56.110"
+      ip: SERVER_IP
 
     server.vm.provider "virtualbox" do |vb|
       vb.name = "yowazgaS"
@@ -14,6 +17,7 @@ Vagrant.configure("2") do |config|
     end
 
     server.vm.provision "shell",
-      path: "scripts/server.sh"
+      path: "scripts/server.sh",
+      args: [SERVER_IP]
   end
 end
