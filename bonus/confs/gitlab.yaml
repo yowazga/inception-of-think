@@ -1,0 +1,163 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+
+metadata:
+  name: gitlab-config
+  namespace: gitlab
+
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+
+metadata:
+  name: gitlab-data
+  namespace: gitlab
+
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+
+---
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: gitlab
+  namespace: gitlab
+
+spec:
+  replicas: 1
+
+  # The volumes are ReadWriteOnce: never run two GitLab pods at the same time
+  strategy:
+    type: Recreate
+
+  selector:
+    matchLabels:
+      app: gitlab
+
+  template:
+    metadata:
+      labels:
+        app: gitlab
+
+    spec:
+      # Otherwise Kubernetes injects GITLAB_* variables for the "gitlab" service
+      enableServiceLinks: false
+
+      containers:
+        - name: gitlab
+          # Official GitLab Community Edition image, latest release
+          image: gitlab/gitlab-ce:latest
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 80
+
+          env:
+            - name: GITLAB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: gitlab-root-password
+                  key: password
+            - name: GITLAB_OMNIBUS_CONFIG
+              value: |
+                external_url 'http://gitlab.localhost'
+                gitlab_rails['initial_root_password'] = ENV['GITLAB_ROOT_PASSWORD']
+                gitlab_rails['store_initial_root_password'] = false
+                # Lower memory usage: single Puma process, fewer Sidekiq
+                # threads, no bundled monitoring, no Kubernetes agent server
+                puma['worker_processes'] = 0
+                sidekiq['concurrency'] = 5
+                prometheus_monitoring['enable'] = false
+                gitlab_kas['enable'] = false
+
+          # The first boot (database setup) takes several minutes
+          readinessProbe:
+            httpGet:
+              path: /users/sign_in
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+
+          resources:
+            requests:
+              cpu: 500m
+              memory: 2Gi
+
+          volumeMounts:
+            - name: config
+              mountPath: /etc/gitlab
+            - name: data
+              mountPath: /var/opt/gitlab
+            - name: logs
+              mountPath: /var/log/gitlab
+            - name: shm
+              mountPath: /dev/shm
+
+      volumes:
+        - name: config
+          persistentVolumeClaim:
+            claimName: gitlab-config
+        - name: data
+          persistentVolumeClaim:
+            claimName: gitlab-data
+        - name: logs
+          emptyDir: {}
+        - name: shm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 256Mi
+
+---
+apiVersion: v1
+kind: Service
+
+metadata:
+  name: gitlab
+  namespace: gitlab
+
+spec:
+  selector:
+    app: gitlab
+
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+
+  type: ClusterIP
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+
+metadata:
+  name: gitlab
+  namespace: gitlab
+
+spec:
+  ingressClassName: traefik
+
+  rules:
+    - host: gitlab.localhost
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: gitlab
+                port:
+                  number: 80
