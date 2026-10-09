@@ -2,6 +2,9 @@
 
 set -e
 
+# ubuntu or debian: both have an official Docker apt repository
+DISTRO="$(. /etc/os-release && echo "$ID")"
+
 echo "==> Updating system packages"
 sudo apt-get update
 
@@ -9,6 +12,7 @@ echo "==> Installing required packages"
 sudo apt-get install -y \
     ca-certificates \
     curl \
+    git \
     gnupg
 
 echo "==> Installing Docker"
@@ -16,14 +20,14 @@ if ! command -v docker >/dev/null 2>&1; then
     sudo install -m 0755 -d /etc/apt/keyrings
 
     sudo curl -fsSL \
-        https://download.docker.com/linux/ubuntu/gpg \
+        "https://download.docker.com/linux/${DISTRO}/gpg" \
         -o /etc/apt/keyrings/docker.asc
 
     sudo chmod a+r /etc/apt/keyrings/docker.asc
 
     echo \
       "Types: deb
-URIs: https://download.docker.com/linux/ubuntu
+URIs: https://download.docker.com/linux/${DISTRO}
 Suites: $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}")
 Components: stable
 Architectures: $(dpkg --print-architecture)
@@ -41,7 +45,7 @@ Signed-By: /etc/apt/keyrings/docker.asc" | \
 fi
 
 echo "==> Configuring Docker access"
-if ! groups "$USER" | grep -q '\bdocker\b'; then
+if ! id -nG "$USER" | grep -qw docker; then
     sudo usermod -aG docker "$USER"
     echo "Docker group added. Log out and back in before using docker without sudo."
 fi
@@ -56,7 +60,7 @@ if ! command -v kubectl >/dev/null 2>&1; then
     KUBECTL_VERSION="$(curl -L -s https://dl.k8s.io/release/stable.txt)"
 
     curl -LO \
-        "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl"
+        "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/$(dpkg --print-architecture)/kubectl"
 
     sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
 
