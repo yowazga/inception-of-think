@@ -38,6 +38,10 @@ metadata:
 spec:
   replicas: 1
 
+  # Pulling the 1.5 GB image plus the first boot can take well over the
+  # default 10 minutes, after which the rollout would be reported as failed
+  progressDeadlineSeconds: 1800
+
   # The volumes are ReadWriteOnce: never run two GitLab pods at the same time
   strategy:
     type: Recreate
