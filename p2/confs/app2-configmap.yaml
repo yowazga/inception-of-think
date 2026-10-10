@@ -8,6 +8,19 @@ data:
   index.html: |
     <html>
       <body>
-        <h1>APP 2</h1>
+        <h1>Hello from app2.</h1>
+        <p>pod: <!--# echo var="hostname" --></p>
       </body>
     </html>
+
+  # SSI fills in the pod name above, to see which replica answered
+  default.conf: |
+    server {
+      listen 80;
+
+      location / {
+        root /usr/share/nginx/html;
+        index index.html;
+        ssi on;
+      }
+    }

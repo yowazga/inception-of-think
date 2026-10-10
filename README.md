@@ -20,7 +20,7 @@ vagrant ssh yowazgaSW -c "ip a"
 
 ```sh
 curl -H "Host: app1.com" 192.168.56.110   # app1
-curl -H "Host: app2.com" 192.168.56.110   # app2 (3 replicas)
+curl -H "Host: app2.com" 192.168.56.110   # app2: run it a few times, the pod name changes (3 replicas)
 curl 192.168.56.110                       # app3 (default)
 vagrant ssh yowazgaS -c "kubectl get all,ingress"
 ```
