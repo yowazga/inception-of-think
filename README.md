@@ -9,6 +9,29 @@ Login used for machine and repository names: `yowazga`.
 | p3 | k3d + Argo CD deploying `wil42/playground` from GitHub | `bash p3/scripts/setup.sh` |
 | bonus | Part 3 with a local GitLab as the Git source | `bash bonus/scripts/setup.sh` |
 
+## With make
+
+Everything runs inside the Linux VM, from the repository root. Run `make` alone to list all targets.
+
+```sh
+sudo apt-get install -y make    # Ubuntu Desktop does not ship it
+make deps                       # git, curl, VirtualBox, Vagrant (for p1 and p2)
+
+make p1 && make p1-check        # Part 1
+make p2 && make p2-check        # Part 2 (destroys Part 1 first)
+make p2-down
+
+make p3 && make p3-check        # Part 3
+make p3-version V=v2            # push v2 to GitHub, wait 30 s, then make p3-check
+make p3-ui                      # Argo CD UI on https://localhost:8080
+
+make bonus && make bonus-check  # Bonus
+make bonus-version V=v2         # push v2 to GitLab, wait 30 s, then make bonus-check
+make bonus-ui
+
+make clean                      # destroy every VM and cluster
+```
+
 ## Part 1
 
 ```sh
